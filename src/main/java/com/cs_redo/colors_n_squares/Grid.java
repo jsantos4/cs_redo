@@ -1,56 +1,64 @@
 package com.cs_redo.colors_n_squares;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 
 class Grid implements Comparable<Grid> {
 
 	private int[][] cells;
-	private int rows, columns, population, affinityBound;
+	private int height, width, population;
 	private double totalAffinity, optimumAffinity;
 	private ThreadLocalRandom rng = ThreadLocalRandom.current();
+	private int[] originalImage;
 
-	public Grid(int[][] rgbMap){
-		this.cells = rgbMap;
-		this.rows = rgbMap.length;
-		this.columns = rgbMap[0].length;
-		population = rows * columns;
+	public Grid(int[] originalImage, int width, int height){
+		this.height = height;
+		this.width = width;
+		this.originalImage = originalImage;
+
+		population = height * width;
 		optimumAffinity = population * 2;
 
+		init();
 		calculateTotalAffinity();
 	}
 
+
+
 	public Grid(Grid g){
-		this.rows = g.getRows();
-		this.columns = g.getColumns();
+		this.height = g.getHeight();
+		this.width = g.getWidth();
 		this.population = g.getPopulation();
 		this.cells = g.getCells();
 		this.optimumAffinity = g.getOptimumAffinity();
 		this.totalAffinity = g.getTotalAffinity();
-		this.affinityBound = g.getAffinityBound();
+		this.originalImage = g.getOriginalImage();
 		calculateTotalAffinity();
 
 	}
 
-
 	public Grid(Grid parent1, Grid parent2, double mutationRate) {
 
-		this.cells = new int[parent1.getRows()][parent1.getColumns()];
-		this.rows = parent1.getRows();
-		this.columns = parent1.getColumns();
-		this.affinityBound = parent1.getAffinityBound();
+		this.cells = new int[parent1.getWidth()][parent1.getHeight()];
+		this.height = parent1.getHeight();
+		this.width = parent1.getWidth();
 		this.optimumAffinity = parent1.getOptimumAffinity();
+		this.originalImage = parent1.getOriginalImage();
 
-		this.population = rows * columns;
+		this.population = height * width;
 
-		for (int row = 0; row < rows; row++){
-			for (int column = 0; column < columns; column++) {	
+		for (int x = 0; x < width; x++) {	
+			for (int y = 0; y < height; y++){
 				if (rng.nextDouble() < mutationRate) {
-					this.cells[row][column] = rng.nextInt(affinityBound);
+					this.cells[x][y] = (rng.nextInt(256) << 24) | (rng.nextInt(256) << 16) | (rng.nextInt(256) << 8) | rng.nextInt(256);
 				} else {
-					if (parent1.calculateLocalAffinity(row, column) > parent2.calculateLocalAffinity(row, column))
-						this.cells[row][column] = parent1.getCells()[row][column];
+					if (parent1.calculateLocalAffinity(x, y) > parent2.calculateLocalAffinity(x, y))
+						this.cells[x][y] = parent1.getCells()[x][y];
 					else
-						this.cells[row][column] = parent2.getCells()[row][column];
+						this.cells[x][y] = parent2.getCells()[x][y];
 				}
 			}
 		}
@@ -58,63 +66,81 @@ class Grid implements Comparable<Grid> {
 		calculateTotalAffinity();
 	}
 
+	private void init() {
+		List<Integer> temp = Arrays.stream(originalImage).boxed().toList();
+		ArrayList<Integer> temp1 = new ArrayList<>(temp);
+		Collections.shuffle(temp1);
+		this.cells = new int[width][height];
+
+		for (int x = 0; x < width; x++) {
+			for (int y = 0; y < height; y++) {
+				cells[x][y] = temp.get(x + y);
+			}
+		}
+	
+	}
+
 	//Calculate affinity of whole grid by multiplying local affinities 
 	private void calculateTotalAffinity(){
 		totalAffinity = 0.0;
-		for (int row = 0; row < rows; row++) {
-			for (int column = 0; column < columns; column++) {
-				totalAffinity += calculateLocalAffinity(row, column);
+		for (int x = 0; x < width; x++) {
+			for (int y = 0; y < height; y++) {
+				totalAffinity += calculateLocalAffinity(x, y);
 			}
 		}
 	}
 
-	private double calculateLocalAffinity(int row, int column) {
-		double affinity = 0.0;
-	
-		//Check above and below for bounds
-		if (row < rows - 1)
-			affinity += Math.abs(cells[row][column] - cells[row + 1][column]);
-		if (row > 0)
-			affinity += Math.abs(cells[row][column] - cells[row - 1][column]);
-
-		//Check right column for bound
-		if (column < columns - 1){
-			affinity += Math.abs(cells[row][column] - cells[row][column + 1]);
-			if (row < rows - 1)
-				affinity += Math.abs(cells[row][column] - cells[row + 1][column + 1]);
-			if (row > 0)
-				affinity += Math.abs(cells[row][column] - cells[row - 1][column + 1]);
-		}
-
-		//Check left column for bound
-		if (column > 0) {
-			affinity += Math.abs(cells[row][column] - cells[row][column - 1]);
+	private double calculateLocalAffinity(int x, int y) {
 		
-			if (row < rows - 1)
-				affinity += Math.abs(cells[row][column] - cells[row + 1][column - 1]);
-			if (row > 0)
-				affinity += Math.abs(cells[row][column]- cells[row - 1][column - 1]);
-		}
+		double affinity =  Math.abs(cells[x][y] - originalImage[y * (height - 1) + x]);
 
 		//Since we want cells to be similar to those around it, Affinity of a cell will be 1 over it's cumulative difference to it's neighbors 
 		//(Adding one to divisor to avoid dividing by zero)
 		return 1 / (affinity + 1);
+	
+		/*
+		//Check above and below for bounds
+		if (y < height - 1)
+			affinity += Math.abs(cells[x][y] - cells[x][y + 1]);
+		if (y > 0)
+			affinity += Math.abs(cells[x][y] - cells[x][y - 1]);
+
+		//Check right x for bound
+		if (x < width - 1){
+			affinity += Math.abs(cells[x][y] - cells[x + 1][y]);
+			if (y < height - 1)
+				affinity += Math.abs(cells[x][y] - cells[x + 1][y + 1]);
+			if (y > 0)
+				affinity += Math.abs(cells[x][y] - cells[x + 1][y - 1]);
+		}
+
+		//Check left x for bound
+		if (x > 0) {
+			affinity += Math.abs(cells[x][y] - cells[x - 1][y]);
+		
+			if (y < height - 1)
+				affinity += Math.abs(cells[x][y] - cells[x - 1][y + 1]);
+			if (y > 0)
+				affinity += Math.abs(cells[x][y]- cells[x - 1][y - 1]);
+		}
+		 */
+
 	}
 
 	public void printGrid() {
-		for (int row = 0; row < rows; row++) {
-			for (int column = 0; column < columns; column++) {
-				System.out.print(cells[row][column] + " ");
+		for (int x = 0; x < width; x++) {
+			for (int y = 0; y < height; y++) {
+				System.out.print(cells[x][y] + " ");
 			}
 			System.out.println();
 		}
 	}
 
-	public int getRows() { 
-		return rows; 
+	public int getHeight() { 
+		return height; 
 	}
-	public int getColumns() {
-		return columns;
+	public int getWidth() {
+		return width;
 	}
 	
 	public int getPopulation() { 
@@ -132,9 +158,9 @@ class Grid implements Comparable<Grid> {
 	public double getOptimumAffinity() {
 		return optimumAffinity;
 	}
-
-	public int getAffinityBound() {
-		return affinityBound;
+	
+	private int[] getOriginalImage() {
+		return originalImage;
 	}
 
 	@Override

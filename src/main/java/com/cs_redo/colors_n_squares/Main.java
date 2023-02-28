@@ -9,8 +9,8 @@ public class Main {
 	public static void main(String args[]) {
 		try {
 			
-			BufferedImage imageFile = ImageIO.read(new File("C://someimage"));
-			GeneticAlgorithm ga = new GeneticAlgorithm(10, 0.001, imageFile);
+			BufferedImage imageFile = ImageIO.read(new File("I://Pictures/misc/Base.jpg"));
+			GeneticAlgorithm ga = new GeneticAlgorithm(10, 0.05, imageFile);
 			ga.run();
 
 		} catch (IOException exception) {
