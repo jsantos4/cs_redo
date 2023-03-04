@@ -33,10 +33,9 @@ class GeneticAlgorithm implements Runnable {
 	}
 
 	private void init() {
-		int[] originalImage = image.getRGB(0, 0, image.getWidth() - 1, image.getHeight() - 1, null, 0, image.getWidth());
 		
 		for (int i = 0; i < scale; i++) {
-			generation.add(new Grid(originalImage, image.getWidth(), image.getHeight()));
+			generation.add(new Grid(image, image.getWidth(), image.getHeight()));
 			summedAffinities += generation.get(i).getTotalAffinity();
 		}
 		Collections.sort(generation);

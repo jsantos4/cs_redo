@@ -1,10 +1,8 @@
 package com.cs_redo.colors_n_squares;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
+import java.awt.image.BufferedImage;
+
 
 class Grid implements Comparable<Grid> {
 
@@ -12,9 +10,9 @@ class Grid implements Comparable<Grid> {
 	private int height, width, population;
 	private double totalAffinity, optimumAffinity;
 	private ThreadLocalRandom rng = ThreadLocalRandom.current();
-	private int[] originalImage;
+	private BufferedImage originalImage;
 
-	public Grid(int[] originalImage, int width, int height){
+	public Grid(BufferedImage originalImage, int width, int height){
 		this.height = height;
 		this.width = width;
 		this.originalImage = originalImage;
@@ -67,14 +65,11 @@ class Grid implements Comparable<Grid> {
 	}
 
 	private void init() {
-		List<Integer> temp = Arrays.stream(originalImage).boxed().toList();
-		ArrayList<Integer> temp1 = new ArrayList<>(temp);
-		Collections.shuffle(temp1);
-		this.cells = new int[width][height];
-
-		for (int x = 0; x < width; x++) {
-			for (int y = 0; y < height; y++) {
-				cells[x][y] = temp.get(x + y);
+		cells = new int[width][height];
+		
+		for (int x = width - 1; x > 0; x--) {
+			for (int y = height - 1; y > 0; y--) {
+				cells[x][y] = originalImage.getRGB(rng.nextInt(x + 1), rng.nextInt(y + 1));
 			}
 		}
 	
@@ -92,7 +87,7 @@ class Grid implements Comparable<Grid> {
 
 	private double calculateLocalAffinity(int x, int y) {
 		
-		double affinity =  Math.abs(cells[x][y] - originalImage[y * (height - 1) + x]);
+		double affinity =  Math.abs(cells[x][y] - originalImage.getRGB(x, y));
 
 		//Since we want cells to be similar to those around it, Affinity of a cell will be 1 over it's cumulative difference to it's neighbors 
 		//(Adding one to divisor to avoid dividing by zero)
@@ -159,7 +154,7 @@ class Grid implements Comparable<Grid> {
 		return optimumAffinity;
 	}
 	
-	private int[] getOriginalImage() {
+	private BufferedImage getOriginalImage() {
 		return originalImage;
 	}
 
